@@ -1,5 +1,6 @@
 import sqlite3
 import hashlib
+from datetime import datetime
 from config import DATABASE_PATH
 
 def get_db_connection():
@@ -24,6 +25,19 @@ def init_db():
                 prompt_hash TEXT PRIMARY KEY,
                 response_text TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Create scheduled notices table (for /create-notice announcements)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS scheduled_notices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER,
+                channel_id INTEGER NOT NULL,
+                author_id INTEGER NOT NULL,
+                message TEXT NOT NULL,
+                scheduled_time TIMESTAMP NOT NULL,
+                sent INTEGER DEFAULT 0
             )
         """)
         conn.commit()
@@ -76,4 +90,29 @@ def cache_ai_response(prompt: str, response_text: str):
             "INSERT OR REPLACE INTO ai_cache (prompt_hash, response_text) VALUES (?, ?)",
             (prompt_hash, response_text)
         )
+        conn.commit()
+
+def create_scheduled_notice(guild_id: int, channel_id: int, author_id: int, message: str, scheduled_time: datetime) -> int:
+    """Stores a notice to be posted to a channel at a future time. Returns the new notice's id."""
+    with get_db_connection() as conn:
+        cursor = conn.execute(
+            "INSERT INTO scheduled_notices (guild_id, channel_id, author_id, message, scheduled_time) VALUES (?, ?, ?, ?, ?)",
+            (guild_id, channel_id, author_id, message, scheduled_time.isoformat())
+        )
+        conn.commit()
+        return cursor.lastrowid
+
+def get_due_notices(now: datetime) -> list:
+    """Returns all unsent notices whose scheduled_time has passed."""
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM scheduled_notices WHERE sent = 0 AND scheduled_time <= ?",
+            (now.isoformat(),)
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+def mark_notice_sent(notice_id: int):
+    """Marks a scheduled notice as delivered so it is not sent again."""
+    with get_db_connection() as conn:
+        conn.execute("UPDATE scheduled_notices SET sent = 1 WHERE id = ?", (notice_id,))
         conn.commit()

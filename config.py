@@ -13,3 +13,4 @@ DATABASE_PATH = "neurodivergent_bot.db"
 COLOR_TONE = 0xD1C4E9      # Soft lavender
 COLOR_ADHD = 0xB2DFDB      # Soft teal
 COLOR_READABILITY = 0xC8E6C9 # Soft mint green
+COLOR_NOTICE = 0xFFE0B2     # Soft peach

@@ -18,7 +18,7 @@ class NeuroBot(commands.Bot):
         print("Database initialized.")
 
         # Load our features cogs
-        cogs = ["cogs.tones", "cogs.adhd", "cogs.readability"]
+        cogs = ["cogs.tones", "cogs.adhd", "cogs.readability", "cogs.notices"]
         for cog in cogs:
             try:
                 await self.load_extension(cog)
